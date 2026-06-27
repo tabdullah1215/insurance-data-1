@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { generateClaims } from './data/generateClaims'
 import './App.css'
 
+import { TableVirtuoso } from 'react-virtuoso'
+
 // Generate the dataset once, outside the component, so it isn't rebuilt on every render.
 const ALL_CLAIMS = generateClaims(50000)
 
@@ -34,7 +36,8 @@ function App() {
           c.id.toLowerCase().includes(q) ||
           c.policyNumber.toLowerCase().includes(q) ||
           c.lineOfBusiness.toLowerCase().includes(q) ||
-          c.state.toLowerCase().includes(q)
+          c.state.toLowerCase().includes(q),
+          c.claimStatus.toLowerCase().includes(q)
         )
       }),
     [debouncedQuery]
@@ -61,8 +64,11 @@ function App() {
       </div>
 
       <div className="table-wrap">
-        <table className="grid">
-          <thead>
+        <TableVirtuoso
+        className="grid"
+          style={{height: 600}}
+          data={filtered}
+          fixedHeaderContent={() => (
             <tr>
               <th>Claim ID</th>
               <th>Policy</th>
@@ -75,11 +81,10 @@ function App() {
               <th className="num">Reserve</th>
               <th className="num">Incurred Loss</th>
               <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((c) => (
-              <tr key={c.id}>
+            </tr>)
+          }
+          itemContent={(i, c) => (
+            <>
                 <td>{c.id}</td>
                 <td>{c.policyNumber}</td>
                 <td>{c.lineOfBusiness}</td>
@@ -91,10 +96,10 @@ function App() {
                 <td className="num">{currency(c.reserve)}</td>
                 <td className="num">{currency(c.incurredLoss)}</td>
                 <td>{c.claimStatus}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </>
+          )}
+
+        />        
       </div>
     </div>
   )
