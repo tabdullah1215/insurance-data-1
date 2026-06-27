@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { generateClaims } from './data/generateClaims'
 import './App.css'
 
@@ -10,20 +10,35 @@ const currency = (n) =>
 
 function App() {
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
 
-  // NAIVE on purpose: this re-filters 50k rows on every keystroke (no debounce,
-  // no memoization) AND renders every matching row as a real DOM node.
-  // Phase 2 will fix all of this. Type in the box and watch it lag.
-  const filtered = ALL_CLAIMS.filter((c) => {
-    if (!query) return true
-    const q = query.toLowerCase()
-    return (
-      c.id.toLowerCase().includes(q) ||
-      c.policyNumber.toLowerCase().includes(q) ||
-      c.lineOfBusiness.toLowerCase().includes(q) ||
-      c.state.toLowerCase().includes(q)
-    )
-  })
+  // Debounce: copy `query` into `debouncedQuery` only after the user pauses
+  // typing for 300ms. The cleanup cancels the pending timer on each keystroke,
+  // so the expensive filter below runs once per pause, not once per character.
+  useEffect(() => {
+    const sto = setTimeout(() => {
+      setDebouncedQuery(query)
+    }, 300)
+
+    return () => clearTimeout(sto)
+  }, [query])
+
+  // Memoized filtering: only recomputes when `debouncedQuery` changes, not on
+  // every render. The input stays driven by `query` for instant responsiveness.
+  const filtered = useMemo(
+    () =>
+      ALL_CLAIMS.filter((c) => {
+        if (!debouncedQuery) return true
+        const q = debouncedQuery.toLowerCase()
+        return (
+          c.id.toLowerCase().includes(q) ||
+          c.policyNumber.toLowerCase().includes(q) ||
+          c.lineOfBusiness.toLowerCase().includes(q) ||
+          c.state.toLowerCase().includes(q)
+        )
+      }),
+    [debouncedQuery]
+  )
 
   return (
     <div className="app">
