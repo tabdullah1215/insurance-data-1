@@ -36,7 +36,7 @@ function App() {
           c.id.toLowerCase().includes(q) ||
           c.policyNumber.toLowerCase().includes(q) ||
           c.lineOfBusiness.toLowerCase().includes(q) ||
-          c.state.toLowerCase().includes(q),
+          c.state.toLowerCase().includes(q) ||
           c.claimStatus.toLowerCase().includes(q)
         )
       }),
