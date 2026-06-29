@@ -84,3 +84,122 @@ const toYear = (value) => {
     // null, undefined, objects, anything we can't interpret.
     return null;
 }
+
+const getPolicyNumber = (raw) => (
+    typeof raw.policy === 'string' ? raw.policy : 
+        (raw.policy?.number ?? null)
+);
+
+const getHolderName = (raw) => {
+    const first = raw.policy?.holder?.firstName;
+    const last = raw.policy?.holder?.lastName;
+
+    return [first, last].filter(Boolean).join(' ') || null;
+}
+
+const getAccidentYear = (raw) => toYear(raw.accidentYear) 
+    ?? toYear(raw.accidentDate);
+
+const getReportYear = (raw) => toYear(raw.reportYear) 
+    ?? toYear(raw.reportData);
+
+
+const LOB_MAP = {
+  'auto': 'Auto', 'personal auto': 'Auto', 'pa': 'Auto',
+  'home': 'Homeowners', 'homeowner': 'Homeowners', 'homeowners': 'Homeowners', 'ho': 'Homeowners',
+  'commercial': 'Commercial', 'comm': 'Commercial', 'cl': 'Commercial',
+  'workers comp': 'Workers Comp', 'workers compensation': 'Workers Comp', 'wc': 'Workers Comp',
+}
+
+const getLineOfBusiness = (raw) => {
+    const lob = (raw.lineOfBusiness ?? raw.line_of_business ?? raw.lob)?.trim().toLowerCase();
+    return LOB_MAP[lob] ?? null;
+
+}
+
+const STATE_MAP = { illinois: 'IL', texas: 'TX', california: 'CA', florida: 'FL', 'new york': 'NY' };
+
+const getState = (raw) => {
+    const state = (raw.policy?.holder?.state ?? raw.location?.state);
+    if(!state) return null;
+    return STATE_MAP[state.trim().toLowerCase()] ?? state.trim().toUpperCase();
+}
+
+const STATUS_MAP = { open: 'Open', closed: 'Closed', reopened: 'Reopened'};
+
+const getStatus = (raw) => {
+    if(raw.status?.trim() === 'Open' || STATUS_MAP[raw.status?.trim().toLowerCase()] === "Open") return "Open";
+    if(raw.status === 'Reopened' || STATUS_MAP[raw.status?.trim().toLowerCase()] === 'Reopened' || toBool(raw.reopened)) return "Reopened";
+    if(raw.status === 'Closed' || STATUS_MAP[raw.status?.trim().toLowerCase()] === 'Closed' || raw.closedDate) return "Closed";
+    
+
+    return "Open";
+}
+
+const getCarrierId = (raw) => {
+    return raw.carrier?.id ?? raw.carrierId ?? null;
+}
+
+const getPremium = (raw) => {
+    if(raw.premiumCents) return toNumber(raw.premiumCents)/100;
+    return toNumber(raw.premium);
+}
+
+const sum = (arr) => arr.reduce((acc, n) => acc + toNumber(n), 0);
+
+const getPaidLoss = (raw) => {
+    
+    if(raw.loss?.paid) return toNumber(raw.loss?.paid);
+    if(raw.payments && Array.isArray(raw.payments)) return sum(raw.payments);
+    if(raw.payments) return toNumber(raw.payments);
+    return null;
+}
+
+const getReserve = (raw) => {
+    if(raw.reserve) return toNumber(raw.reserve);
+    if(raw.loss?.reserve) return toNumber(raw.loss?.reserve);
+    return 0;
+}
+
+const getIncurred = (raw) => {
+    const paid = getPaidLoss(raw);
+    const reserve = getReserve(raw);
+    return toNumber(raw.incurredLoss) ?? (paid ?? 0) + (reserve);
+}
+
+
+export const normalizeClaim = (raw) => {
+    const accidentYear = getAccidentYear(raw);
+    const reportYear = getReportYear(raw);
+
+    return {
+        id: raw._id ?? raw.claimNumber ?? null,
+        policyNumber: getPolicyNumber(raw),
+        holderName: getHolderName(raw),
+        carrierId: getCarrierId(raw),
+        lineOfBusiness: getLineOfBusiness(raw),
+        state: getState(raw),
+        accidentYear,
+        reportYear,
+        developmentLag: accidentYear !== null && reportYear !== null ? reportYear - accidentYear : null,
+        earnedPremium: getPremium(raw),
+        paidLoss: getPaidLoss(raw),
+        reserve: getReserve(raw),
+        incurredLoss: getIncurred(raw),
+        claimStatus: getStatus(raw),
+        reopened: toBool(raw.reopened)
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
