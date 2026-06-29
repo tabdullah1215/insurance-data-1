@@ -1,14 +1,15 @@
 import { useState, useMemo, useEffect } from 'react'
-import { generateClaims } from './data/generateClaims'
+import { generateRawClaims } from './data/generateRawClaims'
 import './App.css'
 
-import { TableVirtuoso } from 'react-virtuoso'
+import { TableVirtuoso } from 'react-virtuoso';
+import { normalizeClaim } from './data/normalize';
 
 // Generate the dataset once, outside the component, so it isn't rebuilt on every render.
-const ALL_CLAIMS = generateClaims(50000)
+const ALL_CLAIMS = generateRawClaims().map(normalizeClaim);
 
 const currency = (n) =>
-  n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  n == null ? '—' : n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
 function App() {
   const [query, setQuery] = useState('')
