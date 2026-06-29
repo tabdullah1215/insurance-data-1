@@ -3,7 +3,7 @@ import { generateRawClaims } from './data/generateRawClaims'
 import './App.css'
 
 import { TableVirtuoso } from 'react-virtuoso';
-import { normalizeClaim } from './data/normalize';
+import { normalizeClaim, dedupeClaims } from './data/normalize';
 
 // Generate the dataset once, outside the component, so it isn't rebuilt on every render.
 const ALL_CLAIMS = generateRawClaims().map(normalizeClaim);
@@ -30,7 +30,7 @@ function App() {
   // every render. The input stays driven by `query` for instant responsiveness.
   const filtered = useMemo(
     () =>
-      ALL_CLAIMS.filter((c) => {
+      dedupeClaims(ALL_CLAIMS).filter((c) => {
         if (!debouncedQuery) return true
         const q = debouncedQuery.toLowerCase()
         return (
@@ -73,30 +73,40 @@ function App() {
             <tr>
               <th>Claim ID</th>
               <th>Policy</th>
+              <th>Holder</th>
+              <th>Carrier</th>
               <th>Line of Business</th>
               <th>State</th>
-              <th>Accident Yr</th>
-              <th>Dev Lag</th>
+              <th className="num">Accident Yr</th>
+              <th className="num">Report Yr</th>
+              <th className="num">Dev Lag</th>
               <th className="num">Earned Premium</th>
               <th className="num">Paid Loss</th>
               <th className="num">Reserve</th>
               <th className="num">Incurred Loss</th>
               <th>Status</th>
+              <th>Reopened</th>
+              <th className="num">Version</th>
             </tr>)
           }
           itemContent={(i, c) => (
             <>
                 <td>{c.id}</td>
                 <td>{c.policyNumber}</td>
+                <td>{c.holderName}</td>
+                <td>{c.carrierId}</td>
                 <td>{c.lineOfBusiness}</td>
                 <td>{c.state}</td>
-                <td>{c.accidentYear}</td>
-                <td>{c.developmentLag}</td>
+                <td className="num">{c.accidentYear}</td>
+                <td className="num">{c.reportYear}</td>
+                <td className="num">{c.developmentLag}</td>
                 <td className="num">{currency(c.earnedPremium)}</td>
                 <td className="num">{currency(c.paidLoss)}</td>
                 <td className="num">{currency(c.reserve)}</td>
                 <td className="num">{currency(c.incurredLoss)}</td>
                 <td>{c.claimStatus}</td>
+                <td>{c.reopened ? 'Yes' : 'No'}</td>
+                <td className="num">{c.version}</td>
             </>
           )}
 

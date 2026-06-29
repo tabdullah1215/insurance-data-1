@@ -187,8 +187,22 @@ export const normalizeClaim = (raw) => {
         reserve: getReserve(raw),
         incurredLoss: getIncurred(raw),
         claimStatus: getStatus(raw),
-        reopened: toBool(raw.reopened)
+        reopened: toBool(raw.reopened),
+        version: raw.version ?? 0,
     }
+}
+
+export const dedupeClaims = (claims) => {
+    const byId = new Map();
+
+    for(const c of claims){
+        const existing = byId.get(c.id);
+        if(!existing || c.version > existing.version) {
+            byId.set(c.id, c);
+        }
+    }
+
+    return [...byId].map(([id, claim]) => claim);
 }
 
 
